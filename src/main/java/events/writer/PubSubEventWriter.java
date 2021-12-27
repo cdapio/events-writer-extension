@@ -35,10 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
@@ -68,8 +65,8 @@ public class PubSubEventWriter implements EventWriter {
             configureChannelProxy(publisherBuilder);
             this.publisher = publisherBuilder.build();
             logger.info("Publisher created successfully");
-        } catch (Exception e) {
-            logger.error("Error creating pubsub events.publisher");
+        } catch (IOException e) {
+            logger.error("Error creating pubsub events.publisher. Error: " + e.getMessage());
         }
     }
 
@@ -131,7 +128,6 @@ public class PubSubEventWriter implements EventWriter {
                         @Override
                         public void onFailure(Throwable e) {
                             logger.error("Error publishing message : " + e.getMessage());
-
                         }
 
                         @Override
@@ -146,7 +142,7 @@ public class PubSubEventWriter implements EventWriter {
                 retries++;
                 Thread.sleep(300);
             }
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             logger.error("Error publishing message: " + e.getMessage());
         }
     }
