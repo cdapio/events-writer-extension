@@ -14,10 +14,14 @@
  * the License.
  */
 
-package publisher;
+package events.writer;
 
-import interfaces.Event;
+import events.ProgramStatusEventDetails;
 
-public interface IEventPublisher {
-    void publishEvent(Event event);
+public interface EventWriter {
+    /**
+     *
+     * @param event
+     */
+    void publishEvent(ProgramStatusEventDetails event);
 }

@@ -14,11 +14,12 @@
  * the License.
  */
 
-package publisher;
+package events.writer;
 
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
+import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -26,19 +27,36 @@ import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
-import interfaces.Event;
+import events.ProgramStatusEventDetails;
+import io.grpc.HttpConnectProxiedSocketAddress;
+import io.grpc.ProxiedSocketAddress;
+import io.grpc.ProxyDetector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
-import static proxy.ProxyPatcher.configureChannelProxy;
+/**
+ * PubSubEventWriter takes messages from CDAP Event Publisher and writes them
+ * to Google Cloud PubSub
+ */
+public class PubSubEventWriter implements EventWriter {
+    private Publisher publisher;
+    private static final Logger logger = LoggerFactory.getLogger(PubSubEventWriter.class);
 
-public class PubSubEventPublisher implements IEventPublisher {
-    public Publisher publisher;
-
-    public PubSubEventPublisher(String projectId, String serviceAccountPath, String topicId) {
+    /**
+     *
+     * @param projectId
+     * @param serviceAccountPath
+     * @param topicId
+     */
+    public PubSubEventWriter(String projectId, String serviceAccountPath, String topicId) {
         Publisher.Builder publisherBuilder = null;
         this.publisher = null;
 
@@ -49,21 +67,56 @@ public class PubSubEventPublisher implements IEventPublisher {
             // Configure channel proxy is only for this to work in Vodafone VPC
             configureChannelProxy(publisherBuilder);
             this.publisher = publisherBuilder.build();
-            System.out.println("Publisher created successfully");
+            logger.info("Publisher created successfully");
         } catch (Exception e) {
-            System.out.println("Error creating pubsub publisher");
+            logger.error("Error creating pubsub events.publisher");
         }
     }
 
-    static InputStream getCredentials(String saPath) throws FileNotFoundException {
+    /**
+     *
+     * @param saPath
+     * @return
+     * @throws FileNotFoundException
+     */
+    private InputStream getCredentials(String saPath) throws FileNotFoundException {
         File credentialsFile = new File(saPath);
         return new FileInputStream(credentialsFile);
     }
 
-    public void publishEvent(Event event) {
+    /**
+     *
+     * @param builder
+     * @throws NumberFormatException
+     */
+    private void configureChannelProxy(Publisher.Builder builder) throws NumberFormatException {
+        SocketAddress proxySocketAddress = new InetSocketAddress("10.74.42.22", 8080);
+        builder.setChannelProvider(
+                InstantiatingGrpcChannelProvider.newBuilder()
+                        .setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(new ProxyDetector() {
+                            @Nullable
+                            @Override
+                            public ProxiedSocketAddress proxyFor(SocketAddress socketAddress) {
+                                if (socketAddress == null) return null;
+
+                                return HttpConnectProxiedSocketAddress.newBuilder()
+                                        .setTargetAddress((InetSocketAddress) socketAddress)
+                                        .setProxyAddress(proxySocketAddress)
+                                        .build();
+                            }
+                        }))
+                        .build()
+        );
+    }
+
+    /**
+     *
+     * @param event
+     */
+    public void publishEvent(ProgramStatusEventDetails event) {
         Gson gson = new Gson();
 
-        System.out.println("Publishing event");
+        logger.info("Publishing event");
         String stringEvent = gson.toJson(event);
         ByteString data = ByteString.copyFromUtf8(stringEvent);
         try {
@@ -77,24 +130,24 @@ public class PubSubEventPublisher implements IEventPublisher {
 
                         @Override
                         public void onFailure(Throwable e) {
-                            System.out.println("Error publishing message : " + e.getMessage());
+                            logger.error("Error publishing message : " + e.getMessage());
 
                         }
 
                         @Override
                         public void onSuccess(String messageId) {
-                            System.out.println("Published message ID: " + messageId);
+                            logger.info("Published message ID: " + messageId);
                         }
                     },
                     MoreExecutors.directExecutor());
             int retries = 0;
             while (!future.isDone() && retries <= 10) {
-                System.out.println("Future not done yet");
+                logger.info("Future not done yet");
                 retries++;
                 Thread.sleep(300);
             }
         } catch (Exception e) {
-            System.out.println("Error publishing message: " + e.getMessage());
+            logger.error("Error publishing message: " + e.getMessage());
         }
     }
 }
