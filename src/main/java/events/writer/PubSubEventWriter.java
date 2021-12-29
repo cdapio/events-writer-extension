@@ -27,7 +27,7 @@ import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
-import events.ProgramStatusEventDetails;
+import events.Event;
 import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ProxiedSocketAddress;
 import io.grpc.ProxyDetector;
@@ -110,7 +110,7 @@ public class PubSubEventWriter implements EventWriter {
      *
      * @param event
      */
-    public void publishEvent(ProgramStatusEventDetails event) {
+    public void publishEvent(Event event) {
         Gson gson = new Gson();
 
         logger.info("Publishing event");

@@ -14,14 +14,20 @@
  * the License.
  */
 
-package events.writer;
+package events;
 
-import events.Event;
+public interface Event<T> {
+    EventType getType();
 
-public interface EventWriter {
-    /**
-     *
-     * @param event
-     */
-    void publishEvent(Event event);
+    long getPublishTime();
+
+    String getVersion();
+
+    String getInstanceName();
+
+    default String getProjectName() {
+        return null;
+    }
+
+    T getEventDetails();
 }

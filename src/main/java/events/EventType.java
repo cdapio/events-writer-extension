@@ -14,14 +14,8 @@
  * the License.
  */
 
-package events.writer;
+package events;
 
-import events.Event;
-
-public interface EventWriter {
-    /**
-     *
-     * @param event
-     */
-    void publishEvent(Event event);
+public enum EventType {
+    PROGRAM_STATUS
 }
