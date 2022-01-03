@@ -52,8 +52,10 @@ public class PubSubEventWriter implements EventWriter {
      * @param projectId
      * @param serviceAccountPath
      * @param topicId
+     * @param proxyHost
+     * @param proxyPort
      */
-    public PubSubEventWriter(String projectId, String serviceAccountPath, String topicId) {
+    public PubSubEventWriter(String projectId, String serviceAccountPath, String topicId, String proxyHost, String proxyPort) {
         Publisher.Builder publisherBuilder = null;
         this.publisher = null;
 
@@ -62,7 +64,26 @@ public class PubSubEventWriter implements EventWriter {
             publisherBuilder = Publisher.newBuilder(topicName)
                     .setCredentialsProvider(() -> GoogleCredentials.fromStream(getCredentials(serviceAccountPath)));
             // Configure channel proxy is only for this to work in Vodafone VPC
-            configureChannelProxy(publisherBuilder);
+            configureChannelProxy(publisherBuilder, proxyHost, proxyPort);
+            this.publisher = publisherBuilder.build();
+            logger.info("Publisher created successfully");
+        } catch (IOException e) {
+            logger.error("Error creating pubsub events.publisher. Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     *
+     * @param projectId
+     * @param topicId
+     */
+    public PubSubEventWriter(String projectId,  String topicId) {
+        Publisher.Builder publisherBuilder = null;
+        this.publisher = null;
+
+        TopicName topicName = TopicName.of(projectId, topicId);
+        try {
+            publisherBuilder = Publisher.newBuilder(topicName);
             this.publisher = publisherBuilder.build();
             logger.info("Publisher created successfully");
         } catch (IOException e) {
@@ -84,10 +105,12 @@ public class PubSubEventWriter implements EventWriter {
     /**
      *
      * @param builder
+     * @param proxyHost
+     * @param proxyPort
      * @throws NumberFormatException
      */
-    private void configureChannelProxy(Publisher.Builder builder) throws NumberFormatException {
-        SocketAddress proxySocketAddress = new InetSocketAddress("10.74.42.22", 8080);
+    private void configureChannelProxy(Publisher.Builder builder, String proxyHost, String proxyPort) throws NumberFormatException {
+        SocketAddress proxySocketAddress = new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort));
         builder.setChannelProvider(
                 InstantiatingGrpcChannelProvider.newBuilder()
                         .setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(new ProxyDetector() {
