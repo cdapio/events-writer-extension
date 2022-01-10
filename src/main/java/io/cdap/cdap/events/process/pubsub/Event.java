@@ -14,7 +14,9 @@
  * the License.
  */
 
-package events;
+package io.cdap.cdap.events.process.pubsub;
+
+import events.EventType;
 
 public interface Event<T> {
     EventType getType();

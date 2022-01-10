@@ -16,12 +16,31 @@
 
 package events.writer;
 
-import events.Event;
+import context.EventWriterContext;
+import io.cdap.cdap.events.process.pubsub.Event;
 
-public interface EventWriter {
+import java.io.Closeable;
+
+/**
+ * Interface for extensions that will forward CDAP Events to another systems
+ */
+public interface EventWriter extends Closeable {
+
     /**
-     *
-     * @param event
+     * Init method to setup configurations for this EventWriter
+     * @param eventWriterContext eventWriterContext to be used for the EventWriter
+     */
+    void initialize(EventWriterContext eventWriterContext);
+
+    /**
+     * Method to publish the event to the target endpoint
+     * @param event - Event that should be sent.
      */
     void publishEvent(Event event);
+
+    /**
+     * Getter for the unique ID of this EventWriter
+     * @return ID of this EventWriter
+     */
+    String getID();
 }
