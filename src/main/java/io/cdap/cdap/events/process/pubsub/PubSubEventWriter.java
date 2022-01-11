@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Cask Data, Inc.
+ * Copyright © 2022 Cask Data, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -35,7 +35,6 @@ import io.grpc.ProxyDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -44,6 +43,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 /**
  * {@link EventWriter} implementation for sending events to Pub/Sub
@@ -123,22 +123,25 @@ public class PubSubEventWriter implements EventWriter {
      * @param proxyPort Proxy port where configure the use of the proxy
      * @throws NumberFormatException
      */
-    private void configureChannelProxy(Publisher.Builder builder, String proxyHost, String proxyPort) throws NumberFormatException {
+    private void configureChannelProxy(Publisher.Builder builder, String proxyHost, String proxyPort)
+            throws NumberFormatException {
         SocketAddress proxySocketAddress = new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort));
         builder.setChannelProvider(
                 InstantiatingGrpcChannelProvider.newBuilder()
-                        .setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(new ProxyDetector() {
-                            @Nullable
-                            @Override
-                            public ProxiedSocketAddress proxyFor(SocketAddress socketAddress) {
-                                if (socketAddress == null) return null;
-
-                                return HttpConnectProxiedSocketAddress.newBuilder()
-                                        .setTargetAddress((InetSocketAddress) socketAddress)
-                                        .setProxyAddress(proxySocketAddress)
-                                        .build();
-                            }
-                        }))
+                        .setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(
+                                new ProxyDetector() {
+                                    @Nullable
+                                    @Override
+                                    public ProxiedSocketAddress proxyFor(SocketAddress socketAddress) {
+                                        if (socketAddress == null) {
+                                            return null;
+                                        }
+                                        return HttpConnectProxiedSocketAddress.newBuilder()
+                                                .setTargetAddress((InetSocketAddress) socketAddress)
+                                                .setProxyAddress(proxySocketAddress)
+                                                .build();
+                                    }
+                                }))
                         .build()
         );
     }
@@ -174,9 +177,9 @@ public class PubSubEventWriter implements EventWriter {
                     MoreExecutors.directExecutor());
             int retries = 0;
             while (!future.isDone() && retries <= 10) {
+                Thread.sleep(300);
                 logger.info("Future not done yet");
                 retries++;
-                Thread.sleep(300);
             }
         } catch (InterruptedException e) {
             logger.error("Error publishing message: " + e.getMessage());
