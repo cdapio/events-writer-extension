@@ -16,7 +16,6 @@
 
 package io.cdap.cdap.events.process.pubsub;
 
-import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.gson.Gson;
@@ -24,19 +23,22 @@ import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import context.EventWriterContext;
 import events.EventType;
-import junit.framework.TestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PubSubEventWriterTest extends TestCase {
+public class PubSubEventWriterTest {
     private static PubSubEventWriter eventWriter;
 
     private static final String PROJECT = "project";
@@ -53,7 +55,7 @@ public class PubSubEventWriterTest extends TestCase {
 
     @BeforeClass
     public static void initTest() {
-        Map<String,String> mockedProperties = new HashMap<>();
+        Map<String, String> mockedProperties = new HashMap<>();
         mockedProperties.put(PROJECT, "testproject");
         mockedProperties.put(SA_PATH, "test");
         mockedProperties.put(TOPIC, "test-topic");
@@ -61,16 +63,15 @@ public class PubSubEventWriterTest extends TestCase {
         mockedProperties.put(PROXY_PORT, "8080");
         mockedProperties.put(WRITER_NAME, "test-writer");
 
-        EventWriterContext mockContext = new EventWriterContext() {
-            Map<String,String> mockedProperties = new HashMap<>();
-
-            @Override
-            public Map<String, String> getProperties() {
-                return mockedProperties;
-            }
-        };
+        EventWriterContext mockContext = () -> mockedProperties;
 
         eventWriter = new PubSubEventWriter();
+        Publisher.Builder mockBuilder = Mockito.mock(Publisher.Builder.class, RETURNS_DEEP_STUBS);
+        try {
+            when(mockBuilder.setCredentialsProvider(any()).build()).thenReturn(mockedPublisher);
+        } catch (Exception e) {
+            System.out.println("Error mocking publisher builder");
+        }
         eventWriter.initialize(mockContext);
     }
 
@@ -107,14 +108,11 @@ public class PubSubEventWriterTest extends TestCase {
         PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
                 .setData(data)
                 .build();
-        System.out.println("pubsubMessage: " + pubsubMessage.getMessageId());
-        System.out.println("mocked event :" + mockedEvent);
-        System.out.println("data  :" + stringEvent);
-
 
         when(mockedPublisher.publish(pubsubMessage)).thenReturn(ApiFutures.immediateFuture("soy-el-message-id"));
+
         this.eventWriter.publishEvent(mockedEvent);
-        System.out.println("Test executed");
+        // Mockito.verify(mockedPublisher).publish(pubsubMessage);
     }
 
     public void testPublishEventKo() {
