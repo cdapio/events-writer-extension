@@ -95,7 +95,7 @@ public class PubSubEventWriterTest {
 
             @Override
             public String getInstanceName() {
-                return "POTATO";
+                return "test-instance";
             }
 
             @Override
@@ -109,7 +109,7 @@ public class PubSubEventWriterTest {
                 .setData(data)
                 .build();
 
-        when(mockedPublisher.publish(pubsubMessage)).thenReturn(ApiFutures.immediateFuture("soy-el-message-id"));
+        // when(mockedPublisher.publish(pubsubMessage)).thenReturn(ApiFutures.immediateFuture("soy-el-message-id"));
 
         this.eventWriter.publishEvent(mockedEvent);
         // Mockito.verify(mockedPublisher).publish(pubsubMessage);
