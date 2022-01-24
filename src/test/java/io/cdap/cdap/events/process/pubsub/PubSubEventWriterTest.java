@@ -33,20 +33,18 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PubSubEventWriterTest {
-    private static PubSubEventWriter eventWriter;
-
     private static final String PROJECT = "project";
     private static final String SA_PATH = "service_account_path";
     private static final String TOPIC = "topic";
     private static final String PROXY_HOST = "proxy_host";
     private static final String PROXY_PORT = "proxy_port";
     private static final String WRITER_NAME = "pub_sub_event_writer";
+    private static Map<String, String> mockedProperties;
 
     private static final Gson gson = new Gson();
 
@@ -55,7 +53,7 @@ public class PubSubEventWriterTest {
 
     @BeforeClass
     public static void initTest() {
-        Map<String, String> mockedProperties = new HashMap<>();
+        mockedProperties = new HashMap<>();
         mockedProperties.put(PROJECT, "testproject");
         mockedProperties.put(SA_PATH, "test");
         mockedProperties.put(TOPIC, "test-topic");
@@ -63,16 +61,6 @@ public class PubSubEventWriterTest {
         mockedProperties.put(PROXY_PORT, "8080");
         mockedProperties.put(WRITER_NAME, "test-writer");
 
-        EventWriterContext mockContext = () -> mockedProperties;
-
-        eventWriter = new PubSubEventWriter();
-        Publisher.Builder mockBuilder = Mockito.mock(Publisher.Builder.class, RETURNS_DEEP_STUBS);
-        try {
-            when(mockBuilder.setCredentialsProvider(any()).build()).thenReturn(mockedPublisher);
-        } catch (Exception e) {
-            System.out.println("Error mocking publisher builder");
-        }
-        eventWriter.initialize(mockContext);
     }
 
     @Test
@@ -103,19 +91,74 @@ public class PubSubEventWriterTest {
                 return "this-is-a-test";
             }
         };
+
+        PubSubEventWriter original = new PubSubEventWriter();
+        PubSubEventWriter eventWriter = Mockito.spy(original);
+        Publisher mockedPublisher = Mockito.mock(Publisher.class);
+        when(mockedPublisher.publish(any())).thenReturn(ApiFutures.immediateFuture("soy-el-message-id"));
+        Mockito.doReturn(mockedPublisher).when(eventWriter).getPublisher();
+        EventWriterContext mockContext = () -> mockedProperties;
+
+        eventWriter.initialize(mockContext);
+
         String stringEvent = gson.toJson(mockedEvent);
         ByteString data = ByteString.copyFromUtf8(stringEvent);
         PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
                 .setData(data)
                 .build();
 
-        // when(mockedPublisher.publish(pubsubMessage)).thenReturn(ApiFutures.immediateFuture("soy-el-message-id"));
 
-        this.eventWriter.publishEvent(mockedEvent);
-        // Mockito.verify(mockedPublisher).publish(pubsubMessage);
+        eventWriter.publishEvent(mockedEvent);
+        Mockito.verify(mockedPublisher).publish(pubsubMessage);
     }
 
+    @Test
     public void testPublishEventKo() {
+        Event mockedEvent = new Event() {
+            @Override
+            public EventType getType() {
+                return EventType.PROGRAM_STATUS;
+            }
+
+            @Override
+            public long getPublishTime() {
+                return 1;
+            }
+
+            @Override
+            public String getVersion() {
+                return "1.0.0";
+            }
+
+            @Override
+            public String getInstanceName() {
+                return "test-instance";
+            }
+
+            @Override
+            public Object getEventDetails() {
+                return "this-is-a-test";
+            }
+        };
+
+        PubSubEventWriter original = new PubSubEventWriter();
+        PubSubEventWriter eventWriter = Mockito.spy(original);
+        Publisher mockedPublisher = Mockito.mock(Publisher.class);
+        when(mockedPublisher.publish(any())).thenReturn(ApiFutures.immediateFailedFuture(new Exception("Error publishing")));
+        Mockito.doReturn(mockedPublisher).when(eventWriter).getPublisher();
+        EventWriterContext mockContext = () -> mockedProperties;
+
+        eventWriter.initialize(mockContext);
+
+        String stringEvent = gson.toJson(mockedEvent);
+        ByteString data = ByteString.copyFromUtf8(stringEvent);
+        PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
+                .setData(data)
+                .build();
+
+
+        eventWriter.publishEvent(mockedEvent);
+        Mockito.verify(mockedPublisher).publish(pubsubMessage);
     }
 
     public void testClose() {
