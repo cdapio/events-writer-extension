@@ -32,7 +32,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -47,9 +49,6 @@ public class PubSubEventWriterTest {
     private static Map<String, String> mockedProperties;
 
     private static final Gson gson = new Gson();
-
-    @Mock
-    private static Publisher mockedPublisher;
 
     @BeforeClass
     public static void initTest() {
@@ -144,7 +143,8 @@ public class PubSubEventWriterTest {
         PubSubEventWriter original = new PubSubEventWriter();
         PubSubEventWriter eventWriter = Mockito.spy(original);
         Publisher mockedPublisher = Mockito.mock(Publisher.class);
-        when(mockedPublisher.publish(any())).thenReturn(ApiFutures.immediateFailedFuture(new Exception("Error publishing")));
+        when(mockedPublisher.publish(any()))
+                .thenReturn(ApiFutures.immediateFailedFuture(new Exception("Error publishing")));
         Mockito.doReturn(mockedPublisher).when(eventWriter).getPublisher();
         EventWriterContext mockContext = () -> mockedProperties;
 
@@ -161,6 +161,28 @@ public class PubSubEventWriterTest {
         Mockito.verify(mockedPublisher).publish(pubsubMessage);
     }
 
+    @Test
     public void testClose() {
+        PubSubEventWriter original = new PubSubEventWriter();
+        PubSubEventWriter eventWriter = Mockito.spy(original);
+        Publisher mockedPublisher = Mockito.mock(Publisher.class);
+
+        Mockito.doReturn(mockedPublisher).when(eventWriter).getPublisher();
+        Mockito.doNothing().when(mockedPublisher).shutdown();
+        try {
+            Mockito.doReturn(true).when(mockedPublisher).awaitTermination(1, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        EventWriterContext mockContext = () -> mockedProperties;
+
+        eventWriter.initialize(mockContext);
+
+        eventWriter.close();
+        try {
+            Mockito.verify(mockedPublisher).awaitTermination(1, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            assertNull("No exception: ", e);
+        }
     }
 }
