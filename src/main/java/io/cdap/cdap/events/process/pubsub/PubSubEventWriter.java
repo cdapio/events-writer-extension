@@ -51,11 +51,11 @@ import javax.annotation.Nullable;
 public class PubSubEventWriter implements EventWriter {
 
     private static final Gson GSON = new Gson();
-    private static final String PROJECT = "pub_sub.project";
-    private static final String SA_PATH = "pub_sub.service_account_path";
-    private static final String TOPIC = "pub_sub.topic";
-    private static final String PROXY_HOST = "pub_sub.proxy_host";
-    private static final String PROXY_PORT = "pub_sub.proxy_port";
+    private static final String PROJECT = "project";
+    private static final String SA_PATH = "service_account_path";
+    private static final String TOPIC = "topic";
+    private static final String PROXY_HOST = "proxy_host";
+    private static final String PROXY_PORT = "proxy_port";
     private static final String WRITER_NAME = "pub_sub_event_writer";
 
     @Nullable
@@ -71,9 +71,8 @@ public class PubSubEventWriter implements EventWriter {
 
     @Override
     public void initialize(EventWriterContext eventWriterContext) {
-        if (getPublisher() != null) {
+        if (this.publisher != null) {
             logger.debug("Publisher is already initialized");
-            this.publisher = getPublisher();
             return;
         }
         this.projectId = eventWriterContext.getProperties().get(PROJECT);
@@ -91,16 +90,16 @@ public class PubSubEventWriter implements EventWriter {
             } else {
                 publisherBuilder = Publisher.newBuilder(topicName);
             }
-             String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
+            String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
             String proxyPort = eventWriterContext.getProperties().get(PROXY_PORT);
             // This means to configure the proxy if it comes from the CDAP configuration
             if (proxyHost != null && proxyPort != null) {
                 configureChannelProxy(publisherBuilder, proxyHost, proxyPort);
             }
             this.publisher = publisherBuilder.build();
-            System.out.println("Publisher created successfully");
+            logger.info("Publisher created successfully");
         } catch (IOException e) {
-            System.out.println("Error creating pubsub events.publisher. Error: " + e.getMessage());
+            logger.error("Error creating pubsub events.publisher. Error: " + e.getMessage());
         }
     }
 
@@ -147,21 +146,13 @@ public class PubSubEventWriter implements EventWriter {
         );
     }
 
-    /**
-     *
-     * @return Instance Pub/sub publisher
-     */
-    protected Publisher getPublisher() {
-        return this.publisher;
-    }
-
     @Override
     public void publishEvent(Event event) {
         if (publisher == null) {
-            System.out.println("Publisher is not already initialized");
+            logger.info("Publisher is not already initialized");
             return;
         }
-        System.out.println("Publishing event");
+        logger.info("Publishing event");
         String stringEvent = GSON.toJson(event);
         ByteString data = ByteString.copyFromUtf8(stringEvent);
         try {
@@ -175,23 +166,23 @@ public class PubSubEventWriter implements EventWriter {
 
                         @Override
                         public void onFailure(Throwable e) {
-                            System.out.println("Error publishing message : " + e.getMessage());
+                            logger.error("Error publishing message : " + e.getMessage());
                         }
 
                         @Override
                         public void onSuccess(String messageId) {
-                            System.out.println("Published message ID: " + messageId);
+                            logger.info("Published message ID: " + messageId);
                         }
                     },
                     MoreExecutors.directExecutor());
             int retries = 0;
             while (!future.isDone() && retries <= 10) {
                 Thread.sleep(300);
-                System.out.println("Future not done yet");
+                logger.info("Future not done yet");
                 retries++;
             }
         } catch (InterruptedException e) {
-            System.out.println("Error publishing message: " + e.getMessage());
+            logger.error("Error publishing message: " + e.getMessage());
         }
     }
 
