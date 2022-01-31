@@ -21,15 +21,17 @@ import com.google.cloud.pubsub.v1.Publisher;
 import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
-import context.EventWriterContext;
-import events.EventType;
+import io.cdap.cdap.spi.events.Event;
+import io.cdap.cdap.spi.events.EventType;
+import io.cdap.cdap.spi.events.EventWriterContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -106,8 +108,9 @@ public class PubSubEventWriterTest {
                 .setData(data)
                 .build();
 
-
-        eventWriter.publishEvent(mockedEvent);
+        Collection<Event> events = new ArrayList<Event>();
+        events.add(mockedEvent);
+        eventWriter.write(events);
         Mockito.verify(mockedPublisher).publish(pubsubMessage);
     }
 
@@ -157,7 +160,9 @@ public class PubSubEventWriterTest {
                 .build();
 
 
-        eventWriter.publishEvent(mockedEvent);
+        Collection<Event> events = new ArrayList<>();
+        events.add(mockedEvent);
+        eventWriter.write(events);
         Mockito.verify(mockedPublisher).publish(pubsubMessage);
     }
 
