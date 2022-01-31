@@ -20,9 +20,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.cdap.cdap</groupId>
-  <artifactId>cdap-event-writer-spi</artifactId>
+  <artifactId>cdap-event-writer-extensions</artifactId>
   <name>CDAP Event Writer Extensions</name>
-  <version>6.7.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <properties>
@@ -31,6 +31,12 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>io.cdap.cdap</groupId>
+      <artifactId>cdap-event-writer-spi</artifactId>
+      <version>${cdap.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-pubsub</artifactId>

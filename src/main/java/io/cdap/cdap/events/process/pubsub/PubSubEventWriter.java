@@ -27,23 +27,20 @@ import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
-import context.EventWriterContext;
-import events.writer.EventWriter;
+import io.cdap.cdap.spi.events.Event;
+import io.cdap.cdap.spi.events.EventWriter;
+import io.cdap.cdap.spi.events.EventWriterContext;
 import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ProxiedSocketAddress;
 import io.grpc.ProxyDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.annotation.Nullable;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 
 /**
  * {@link EventWriter} implementation for sending events to Pub/Sub
@@ -156,7 +153,7 @@ public class PubSubEventWriter implements EventWriter {
     }
 
     @Override
-    public void publishEvent(Event event) {
+    public void write(Collection<E> events) {
         if (publisher == null) {
             logger.debug("Publisher is not already initialized");
             return;
