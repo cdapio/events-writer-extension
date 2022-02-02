@@ -53,11 +53,11 @@ import java.util.concurrent.TimeUnit;
 public class PubSubEventWriter implements EventWriter {
 
     private static final Gson GSON = new Gson();
-    private static final String PROJECT = "pub_sub.project";
-    private static final String SA_PATH = "pub_sub.service_account_path";
-    private static final String TOPIC = "pub_sub.topic";
-    private static final String PROXY_HOST = "pub_sub.proxy_host";
-    private static final String PROXY_PORT = "pub_sub.proxy_port";
+    private static final String PROJECT = "project";
+    private static final String SA_PATH = "service_account_path";
+    private static final String TOPIC = "topic";
+    private static final String PROXY_HOST = "proxy_host";
+    private static final String PROXY_PORT = "proxy_port";
     private static final String WRITER_NAME = "pub_sub_event_writer";
 
     @Nullable
