@@ -82,7 +82,7 @@ public class PubSubEventWriter implements EventWriter {
         this.topicId = eventWriterContext.getProperties().get(TOPIC);
         this.serviceAccountPath = eventWriterContext.getProperties().get(SA_PATH);
 
-        Publisher.Builder publisherBuilder = null;
+        Publisher.Builder publisherBuilder;
         TopicName topicName = TopicName.of(this.projectId, this.topicId);
 
         try {
@@ -102,7 +102,7 @@ public class PubSubEventWriter implements EventWriter {
             this.publisher = publisherBuilder.build();
             logger.info("Publisher created successfully");
         } catch (IOException e) {
-            logger.error("Error creating pubsub events.publisher. Error: " + e.getMessage());
+            logger.error("Error creating pubsub events.publisher.", e);
         }
     }
 
@@ -213,9 +213,9 @@ public class PubSubEventWriter implements EventWriter {
         }
         publisher.shutdown();
         try {
-            publisher.awaitTermination(1, TimeUnit.MINUTES);
+            publisher.awaitTermination(15, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error("Error while attempting to shutdown publisher", e);
         }
     }
 }
