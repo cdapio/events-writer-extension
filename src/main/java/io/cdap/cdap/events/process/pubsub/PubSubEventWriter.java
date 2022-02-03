@@ -63,13 +63,9 @@ public class PubSubEventWriter implements EventWriter {
     @Nullable
     private Publisher publisher;
     private static final Logger logger = LoggerFactory.getLogger(PubSubEventWriter.class);
-    private String projectId;
-    private String topicId;
     private String serviceAccountPath;
 
-    public PubSubEventWriter() {
-
-    }
+    public PubSubEventWriter() {}
 
     @Override
     public void initialize(EventWriterContext eventWriterContext) {
@@ -78,12 +74,12 @@ public class PubSubEventWriter implements EventWriter {
             this.publisher = getPublisher();
             return;
         }
-        this.projectId = eventWriterContext.getProperties().get(PROJECT);
-        this.topicId = eventWriterContext.getProperties().get(TOPIC);
+        String projectId = eventWriterContext.getProperties().get(PROJECT);
+        String topicId = eventWriterContext.getProperties().get(TOPIC);
         this.serviceAccountPath = eventWriterContext.getProperties().get(SA_PATH);
 
         Publisher.Builder publisherBuilder;
-        TopicName topicName = TopicName.of(this.projectId, this.topicId);
+        TopicName topicName = TopicName.of(projectId, topicId);
 
         try {
             // This means to use the service account if it comes from the CDAP configuration
@@ -166,38 +162,27 @@ public class PubSubEventWriter implements EventWriter {
         Iterator iterator = events.iterator();
 
         while (iterator.hasNext()) {
-            logger.debug("Publishing event");
             String stringEvent = GSON.toJson(iterator.next());
             ByteString data = ByteString.copyFromUtf8(stringEvent);
-            try {
-                PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
-                        .setData(data)
-                        .build();
-                ApiFuture<String> future = this.publisher.publish(pubsubMessage);
-                ApiFutures.addCallback(
-                        future,
-                        new ApiFutureCallback<String>() {
+            PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
+                    .setData(data)
+                    .build();
+            ApiFuture<String> future = this.publisher.publish(pubsubMessage);
+            ApiFutures.addCallback(
+                    future,
+                    new ApiFutureCallback<String>() {
 
-                            @Override
-                            public void onFailure(Throwable e) {
-                                logger.error("Error publishing message : " + e.getMessage());
-                            }
+                        @Override
+                        public void onFailure(Throwable e) {
+                            logger.error("Error publishing message", e);
+                        }
 
-                            @Override
-                            public void onSuccess(String messageId) {
-                                logger.info("Published message ID: " + messageId);
-                            }
-                        },
-                        MoreExecutors.directExecutor());
-                int retries = 0;
-                while (!future.isDone() && retries <= 10) {
-                    Thread.sleep(300);
-                    logger.debug("Future not done yet");
-                    retries++;
-                }
-            } catch (InterruptedException e) {
-                logger.error("Error publishing message: " + e.getMessage());
-            }
+                        @Override
+                        public void onSuccess(String messageId) {
+                            logger.info("Published message ID: " + messageId);
+                        }
+                    },
+                    MoreExecutors.directExecutor());
         }
     }
 
