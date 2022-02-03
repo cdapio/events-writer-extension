@@ -27,14 +27,15 @@ import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
-import context.EventWriterContext;
-import events.writer.EventWriter;
+import io.cdap.cdap.spi.events.EventWriter;
+import io.cdap.cdap.spi.events.EventWriterContext;
 import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ProxiedSocketAddress;
 import io.grpc.ProxyDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -42,8 +43,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 
 /**
  * {@link EventWriter} implementation for sending events to Pub/Sub
@@ -71,8 +73,9 @@ public class PubSubEventWriter implements EventWriter {
 
     @Override
     public void initialize(EventWriterContext eventWriterContext) {
-        if (this.publisher != null) {
+        if (getPublisher() != null) {
             logger.debug("Publisher is already initialized");
+            this.publisher = getPublisher();
             return;
         }
         this.projectId = eventWriterContext.getProperties().get(PROJECT);
@@ -90,7 +93,7 @@ public class PubSubEventWriter implements EventWriter {
             } else {
                 publisherBuilder = Publisher.newBuilder(topicName);
             }
-            String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
+             String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
             String proxyPort = eventWriterContext.getProperties().get(PROXY_PORT);
             // This means to configure the proxy if it comes from the CDAP configuration
             if (proxyHost != null && proxyPort != null) {
@@ -146,43 +149,55 @@ public class PubSubEventWriter implements EventWriter {
         );
     }
 
+    /**
+     *
+     * @return Instance Pub/sub publisher
+     */
+    protected Publisher getPublisher() {
+        return this.publisher;
+    }
+
     @Override
-    public void publishEvent(Event event) {
+    public void write(Collection events) {
         if (publisher == null) {
-            logger.info("Publisher is not already initialized");
+            logger.debug("Publisher is not already initialized");
             return;
         }
-        logger.info("Publishing event");
-        String stringEvent = GSON.toJson(event);
-        ByteString data = ByteString.copyFromUtf8(stringEvent);
-        try {
-            PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build();
-            ApiFuture<String> future = this.publisher.publish(pubsubMessage);
-            ApiFutures.addCallback(
-                    future,
-                    new ApiFutureCallback<String>() {
+        Iterator iterator = events.iterator();
 
-                        @Override
-                        public void onFailure(Throwable e) {
-                            logger.error("Error publishing message : " + e.getMessage());
-                        }
+        while (iterator.hasNext()) {
+            logger.debug("Publishing event");
+            String stringEvent = GSON.toJson(iterator.next());
+            ByteString data = ByteString.copyFromUtf8(stringEvent);
+            try {
+                PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
+                        .setData(data)
+                        .build();
+                ApiFuture<String> future = this.publisher.publish(pubsubMessage);
+                ApiFutures.addCallback(
+                        future,
+                        new ApiFutureCallback<String>() {
 
-                        @Override
-                        public void onSuccess(String messageId) {
-                            logger.info("Published message ID: " + messageId);
-                        }
-                    },
-                    MoreExecutors.directExecutor());
-            int retries = 0;
-            while (!future.isDone() && retries <= 10) {
-                Thread.sleep(300);
-                logger.info("Future not done yet");
-                retries++;
+                            @Override
+                            public void onFailure(Throwable e) {
+                                logger.error("Error publishing message : " + e.getMessage());
+                            }
+
+                            @Override
+                            public void onSuccess(String messageId) {
+                                logger.info("Published message ID: " + messageId);
+                            }
+                        },
+                        MoreExecutors.directExecutor());
+                int retries = 0;
+                while (!future.isDone() && retries <= 10) {
+                    Thread.sleep(300);
+                    logger.debug("Future not done yet");
+                    retries++;
+                }
+            } catch (InterruptedException e) {
+                logger.error("Error publishing message: " + e.getMessage());
             }
-        } catch (InterruptedException e) {
-            logger.error("Error publishing message: " + e.getMessage());
         }
     }
 
