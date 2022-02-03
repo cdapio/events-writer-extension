@@ -36,11 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collection;
@@ -71,12 +67,12 @@ public class PubSubEventWriter implements EventWriter {
     public void initialize(EventWriterContext eventWriterContext) {
         if (getPublisher() != null) {
             logger.debug("Publisher is already initialized");
-            this.publisher = getPublisher();
+            publisher = getPublisher();
             return;
         }
         String projectId = eventWriterContext.getProperties().get(PROJECT);
         String topicId = eventWriterContext.getProperties().get(TOPIC);
-        this.serviceAccountPath = eventWriterContext.getProperties().get(SA_PATH);
+        serviceAccountPath = eventWriterContext.getProperties().get(SA_PATH);
 
         Publisher.Builder publisherBuilder;
         TopicName topicName = TopicName.of(projectId, topicId);
@@ -89,7 +85,7 @@ public class PubSubEventWriter implements EventWriter {
             } else {
                 publisherBuilder = Publisher.newBuilder(topicName);
             }
-             String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
+            String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
             String proxyPort = eventWriterContext.getProperties().get(PROXY_PORT);
             // This means to configure the proxy if it comes from the CDAP configuration
             if (proxyHost != null && proxyPort != null) {
@@ -164,9 +160,8 @@ public class PubSubEventWriter implements EventWriter {
         while (iterator.hasNext()) {
             String stringEvent = GSON.toJson(iterator.next());
             ByteString data = ByteString.copyFromUtf8(stringEvent);
-            PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build();
+            PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).build();
+
             ApiFuture<String> future = this.publisher.publish(pubsubMessage);
             ApiFutures.addCallback(
                     future,
@@ -193,7 +188,7 @@ public class PubSubEventWriter implements EventWriter {
 
     @Override
     public void close() {
-        if (this.publisher == null) {
+        if (publisher == null) {
             return;
         }
         publisher.shutdown();

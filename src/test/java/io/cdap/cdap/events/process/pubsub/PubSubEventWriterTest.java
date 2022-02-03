@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -104,11 +103,9 @@ public class PubSubEventWriterTest {
 
         String stringEvent = gson.toJson(mockedEvent);
         ByteString data = ByteString.copyFromUtf8(stringEvent);
-        PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
-                .setData(data)
-                .build();
+        PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).build();
 
-        Collection<Event> events = new ArrayList<Event>();
+        Collection<Event> events = new ArrayList<>();
         events.add(mockedEvent);
         eventWriter.write(events);
         Mockito.verify(mockedPublisher).publish(pubsubMessage);
@@ -155,9 +152,7 @@ public class PubSubEventWriterTest {
 
         String stringEvent = gson.toJson(mockedEvent);
         ByteString data = ByteString.copyFromUtf8(stringEvent);
-        PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
-                .setData(data)
-                .build();
+        PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).build();
 
 
         Collection<Event> events = new ArrayList<>();
@@ -167,7 +162,7 @@ public class PubSubEventWriterTest {
     }
 
     @Test
-    public void testClose() {
+    public void testClose() throws InterruptedException {
         PubSubEventWriter original = new PubSubEventWriter();
         PubSubEventWriter eventWriter = Mockito.spy(original);
         Publisher mockedPublisher = Mockito.mock(Publisher.class);
@@ -175,7 +170,7 @@ public class PubSubEventWriterTest {
         Mockito.doReturn(mockedPublisher).when(eventWriter).getPublisher();
         Mockito.doNothing().when(mockedPublisher).shutdown();
         try {
-            Mockito.doReturn(true).when(mockedPublisher).awaitTermination(1, TimeUnit.MINUTES);
+            Mockito.doReturn(true).when(mockedPublisher).awaitTermination(15, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -184,10 +179,6 @@ public class PubSubEventWriterTest {
         eventWriter.initialize(mockContext);
 
         eventWriter.close();
-        try {
-            Mockito.verify(mockedPublisher).awaitTermination(1, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            assertNull("No exception: ", e);
-        }
+        Mockito.verify(mockedPublisher).awaitTermination(15, TimeUnit.SECONDS);
     }
 }
