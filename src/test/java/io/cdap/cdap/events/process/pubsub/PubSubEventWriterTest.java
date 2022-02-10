@@ -154,7 +154,6 @@ public class PubSubEventWriterTest {
         ByteString data = ByteString.copyFromUtf8(stringEvent);
         PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).build();
 
-
         Collection<Event> events = new ArrayList<>();
         events.add(mockedEvent);
         eventWriter.write(events);
