@@ -72,7 +72,6 @@ public class PubSubEventWriter implements EventWriter {
   public void initialize(EventWriterContext eventWriterContext) {
     if (getPublisher() != null) {
       logger.debug("Publisher is already initialized");
-      publisher = getPublisher();
       return;
     }
     String projectId = eventWriterContext.getProperties().get(PROJECT);
@@ -155,7 +154,7 @@ public class PubSubEventWriter implements EventWriter {
 
   @Override
   public void write(Collection events) {
-    if (publisher == null) {
+    if (getPublisher() == null) {
       logger.debug("Publisher is not initialized, events will not be published.");
       return;
     }
@@ -165,7 +164,7 @@ public class PubSubEventWriter implements EventWriter {
       String stringEvent = GSON.toJson(iterator.next());
       ByteString data = ByteString.copyFromUtf8(stringEvent);
       PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).build();
-      ApiFuture<String> future = this.publisher.publish(pubsubMessage);
+      ApiFuture<String> future = getPublisher().publish(pubsubMessage);
       ApiFutures.addCallback(
         future,
         new ApiFutureCallback<String>() {
@@ -191,12 +190,12 @@ public class PubSubEventWriter implements EventWriter {
 
   @Override
   public void close() {
-    if (publisher == null) {
+    if (getPublisher() == null) {
       return;
     }
-    publisher.shutdown();
+    getPublisher().shutdown();
     try {
-      publisher.awaitTermination(15, TimeUnit.SECONDS);
+      getPublisher().awaitTermination(15, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       logger.error("Error while attempting to shutdown publisher", e);
     }

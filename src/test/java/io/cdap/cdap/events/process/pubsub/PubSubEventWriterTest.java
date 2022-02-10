@@ -62,7 +62,6 @@ public class PubSubEventWriterTest {
     mockedProperties.put(PROXY_HOST, "0.0.0.0");
     mockedProperties.put(PROXY_PORT, "8080");
     mockedProperties.put(WRITER_NAME, "test-writer");
-
   }
 
   @Test
