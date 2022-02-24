@@ -52,14 +52,17 @@ import javax.annotation.Nullable;
  */
 public class PubSubEventWriter implements EventWriter {
 
+  private static final Logger LOG = LoggerFactory.getLogger(PubSubEventWriter.class);
   private static final Gson GSON = new Gson();
-  private static final String PROJECT = "project";
-  private static final String SA_PATH = "service_account_path";
-  private static final String TOPIC = "topic";
-  private static final String PROXY_HOST = "proxy_host";
-  private static final String PROXY_PORT = "proxy_port";
-  private static final String WRITER_NAME = "pub_sub_event_writer";
-  private static final Logger logger = LoggerFactory.getLogger(PubSubEventWriter.class);
+
+  //Constant for retrieves the variables from the context
+  private static final String CONFIG_PROJECT = "project";
+  private static final String CONFIG_SA_PATH = "service_account_path";
+  private static final String CONFIG_TOPIC = "topic";
+  private static final String CONFIG_PROXY_HOST = "proxy_host";
+  private static final String CONFIG_PROXY_PORT = "proxy_port";
+
+  private static final String CONFIG_WRITER_ID = "pub_sub_event_writer";
 
   @Nullable
   private Publisher publisher;
@@ -71,12 +74,12 @@ public class PubSubEventWriter implements EventWriter {
   @Override
   public void initialize(EventWriterContext eventWriterContext) {
     if (getPublisher() != null) {
-      logger.debug("Publisher is already initialized");
+      LOG.warn("Publisher is already initialized");
       return;
     }
-    String projectId = eventWriterContext.getProperties().get(PROJECT);
-    String topicId = eventWriterContext.getProperties().get(TOPIC);
-    serviceAccountPath = eventWriterContext.getProperties().get(SA_PATH);
+    String projectId = eventWriterContext.getProperties().get(CONFIG_PROJECT);
+    String topicId = eventWriterContext.getProperties().get(CONFIG_TOPIC);
+    serviceAccountPath = eventWriterContext.getProperties().get(CONFIG_SA_PATH);
 
     Publisher.Builder publisherBuilder;
     TopicName topicName = TopicName.of(projectId, topicId);
@@ -89,28 +92,28 @@ public class PubSubEventWriter implements EventWriter {
       } else {
         publisherBuilder = Publisher.newBuilder(topicName);
       }
-      String proxyHost = eventWriterContext.getProperties().get(PROXY_HOST);
-      String proxyPort = eventWriterContext.getProperties().get(PROXY_PORT);
+      String proxyHost = eventWriterContext.getProperties().get(CONFIG_PROXY_HOST);
+      String proxyPort = eventWriterContext.getProperties().get(CONFIG_PROXY_PORT);
       // This means to configure the proxy if it comes from the CDAP configuration
       if (proxyHost != null && proxyPort != null) {
         configureChannelProxy(publisherBuilder, proxyHost, proxyPort);
       }
       this.publisher = publisherBuilder.build();
-      logger.info("Publisher created successfully");
+      LOG.info("Publisher created successfully");
     } catch (IOException e) {
-      logger.error("Error creating pubsub events.publisher.", e);
+      LOG.error("Error creating pubsub events.publisher.", e);
     }
   }
 
   /**
    * Method to use the service account path as a File
    *
-   * @param saPath Service account where is storage
+   * @param serviceAccountPath Service account where is storage
    * @return Service account as a file
    * @throws FileNotFoundException If the file does not exists, it will throws a FileNotFoundException
    */
-  private InputStream getCredentials(String saPath) throws FileNotFoundException {
-    File credentialsFile = new File(saPath);
+  private InputStream getCredentials(String serviceAccountPath) throws FileNotFoundException {
+    File credentialsFile = new File(serviceAccountPath);
     return new FileInputStream(credentialsFile);
   }
 
@@ -155,7 +158,7 @@ public class PubSubEventWriter implements EventWriter {
   @Override
   public void write(Collection events) {
     if (getPublisher() == null) {
-      logger.debug("Publisher is not initialized, events will not be published.");
+      LOG.warn("Publisher is not initialized, events will not be published.");
       return;
     }
     Iterator iterator = events.iterator();
@@ -171,12 +174,12 @@ public class PubSubEventWriter implements EventWriter {
 
           @Override
           public void onFailure(Throwable e) {
-            logger.error("Error publishing message", e);
+            LOG.error("Error publishing message", e);
           }
 
           @Override
           public void onSuccess(String messageId) {
-            logger.trace("Published message ID: " + messageId);
+            LOG.trace("Published message ID: " + messageId);
           }
         },
         MoreExecutors.directExecutor());
@@ -185,7 +188,7 @@ public class PubSubEventWriter implements EventWriter {
 
   @Override
   public String getID() {
-    return WRITER_NAME;
+    return CONFIG_WRITER_ID;
   }
 
   @Override
@@ -197,7 +200,7 @@ public class PubSubEventWriter implements EventWriter {
     try {
       getPublisher().awaitTermination(15, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
-      logger.error("Error while attempting to shutdown publisher", e);
+      LOG.error("Error while attempting to shutdown publisher", e);
     }
   }
 }
