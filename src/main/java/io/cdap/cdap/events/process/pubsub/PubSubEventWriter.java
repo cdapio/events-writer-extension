@@ -66,6 +66,7 @@ public class PubSubEventWriter implements EventWriter {
 
   @Nullable
   private Publisher publisher;
+  @Nullable
   private String serviceAccountPath;
 
   public PubSubEventWriter() {
