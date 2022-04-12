@@ -57,12 +57,12 @@ public class PubSubEventWriter implements EventWriter {
 
   //Constant for retrieves the variables from the context
   private static final String CONFIG_PROJECT = "project";
-  private static final String CONFIG_SA_PATH = "service_account_path";
+  private static final String CONFIG_SA_PATH = "serviceAccountPath";
   private static final String CONFIG_TOPIC = "topic";
-  private static final String CONFIG_PROXY_HOST = "proxy_host";
-  private static final String CONFIG_PROXY_PORT = "proxy_port";
+  private static final String CONFIG_PROXY_HOST = "proxyHost";
+  private static final String CONFIG_PROXY_PORT = "proxyPort";
 
-  private static final String CONFIG_WRITER_ID = "pub_sub_event_writer";
+  private static final String CONFIG_WRITER_ID = "pub-sub-event-writer";
 
   @Nullable
   private Publisher publisher;
