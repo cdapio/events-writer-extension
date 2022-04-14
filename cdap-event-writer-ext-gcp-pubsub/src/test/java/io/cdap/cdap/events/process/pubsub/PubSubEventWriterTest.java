@@ -45,11 +45,11 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class PubSubEventWriterTest {
   private static final String PROJECT = "project";
-  private static final String SA_PATH = "service_account_path";
+  private static final String SA_PATH = "serviceAccountPath";
   private static final String TOPIC = "topic";
-  private static final String PROXY_HOST = "proxy_host";
-  private static final String PROXY_PORT = "proxy_port";
-  private static final String WRITER_NAME = "pub_sub_event_writer";
+  private static final String PROXY_HOST = "proxyHost";
+  private static final String PROXY_PORT = "proxyPort";
+  private static final String WRITER_NAME = "pub-sub-event-writer";
   private static final Gson gson = new Gson();
   private static Map<String, String> mockedProperties;
 
