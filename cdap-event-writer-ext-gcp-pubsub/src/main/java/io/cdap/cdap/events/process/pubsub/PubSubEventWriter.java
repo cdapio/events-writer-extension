@@ -58,6 +58,7 @@ public class PubSubEventWriter implements EventWriter {
   //Constant for retrieves the variables from the context
   private static final String CONFIG_PROJECT = "project";
   private static final String CONFIG_SA_PATH = "serviceAccountPath";
+  private static final String CONFIG_TOKEN_ENDPOINT = "token.endpoint";
   private static final String CONFIG_TOPIC = "topic";
   private static final String CONFIG_PROXY_HOST = "proxyHost";
   private static final String CONFIG_PROXY_PORT = "proxyPort";
@@ -81,18 +82,14 @@ public class PubSubEventWriter implements EventWriter {
     String projectId = eventWriterContext.getProperties().get(CONFIG_PROJECT);
     String topicId = eventWriterContext.getProperties().get(CONFIG_TOPIC);
     serviceAccountPath = eventWriterContext.getProperties().get(CONFIG_SA_PATH);
+    String tokenEndPoint = eventWriterContext.getProperties().get(CONFIG_TOKEN_ENDPOINT);
+    LOG.debug("Using token end point {}.", tokenEndPoint);
 
-    Publisher.Builder publisherBuilder;
     TopicName topicName = TopicName.of(projectId, topicId);
 
     try {
-      // This means to use the service account if it comes from the CDAP configuration
-      if (this.serviceAccountPath != null) {
-        publisherBuilder = Publisher.newBuilder(topicName)
-          .setCredentialsProvider(() -> GoogleCredentials.fromStream(getCredentials(serviceAccountPath)));
-      } else {
-        publisherBuilder = Publisher.newBuilder(topicName);
-      }
+      Publisher.Builder publisherBuilder = Publisher.newBuilder(topicName);
+      publisherBuilder = setCredentials(publisherBuilder, tokenEndPoint);
       String proxyHost = eventWriterContext.getProperties().get(CONFIG_PROXY_HOST);
       String proxyPort = eventWriterContext.getProperties().get(CONFIG_PROXY_PORT);
       // This means to configure the proxy if it comes from the CDAP configuration
@@ -104,6 +101,19 @@ public class PubSubEventWriter implements EventWriter {
     } catch (IOException e) {
       LOG.error("Error creating pubsub events.publisher.", e);
     }
+  }
+
+  private Publisher.Builder setCredentials(Publisher.Builder publishBuilder, String tokenEndPoint) throws IOException {
+    // Use SA if present
+    if (this.serviceAccountPath != null) {
+      LOG.debug("Using provided service account path for fetching credentials.");
+      return publishBuilder
+        .setCredentialsProvider(
+          () -> GoogleCredentials.fromStream(getCredentials(serviceAccountPath)));
+    }
+
+    // Use token end point for token
+    return publishBuilder.setCredentialsProvider(() -> ComputeEngineCredentials.getOrCreate(tokenEndPoint));
   }
 
   /**
