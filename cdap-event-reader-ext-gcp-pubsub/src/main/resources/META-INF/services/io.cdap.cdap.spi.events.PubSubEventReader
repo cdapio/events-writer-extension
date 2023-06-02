@@ -14,4 +14,4 @@
 # the License.
 #
 
-io.cdap.cdap.events.process.pubsub.PubSubEventWriter
+io.cdap.cdap.events.process.pubsub.GCPPubSubEventReader
