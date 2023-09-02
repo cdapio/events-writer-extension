@@ -50,7 +50,7 @@
     <dependency>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-checkstyle-plugin</artifactId>
-      <version>2.17</version>
+      <version>2.18-SNAPSHOT</version>
       <type>maven-plugin</type>
       <exclusions>
         <exclusion>
