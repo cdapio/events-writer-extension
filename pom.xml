@@ -180,7 +180,7 @@
           <ignorePublishedComponents>true</ignorePublishedComponents>
           <skipPublishing>true</skipPublishing>
         </configuration>
-      </plugin>  
+      </plugin>
     </plugins>
   </build>
 
