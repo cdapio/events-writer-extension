@@ -22,7 +22,7 @@
   <groupId>io.cdap.cdap</groupId>
   <artifactId>cdap-event-writer-extensions</artifactId>
   <name>CDAP Event Writer Extensions</name>
-  <version>1.4.0</version>
+  <version>1.4.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <description>Extensions for the CDAP Event Writer.</description>
