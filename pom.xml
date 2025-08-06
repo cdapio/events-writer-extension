@@ -287,6 +287,15 @@
               </execution>
             </executions>
           </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Profile for release. Includes building of source and javadoc jars. -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
           <!-- GPG signature -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
